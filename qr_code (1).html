@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشغل الفيديو | عرض مباشر</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Cairo) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Responsive video aspect ratio */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Glassmorphic elements */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Unmute Floating Button Pulse Effect */
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Section -->
+    <header class="w-full py-4 px-6 glass-card sticky top-0 z-50 flex items-center justify-between border-b border-slate-800">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg">
+                <i class="fa-solid font-bold fa-play text-xs"></i>
+            </div>
+            <span class="font-bold text-lg tracking-wide bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">مشغل الـ QR</span>
+        </div>
+        <button id="shareBtn" class="text-slate-400 hover:text-white transition p-2 rounded-full hover:bg-slate-800" title="مشاركة الصفحة">
+            <i class="fa-solid fa-share-nodes text-lg"></i>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 flex flex-col justify-center gap-6">
+
+        <!-- Title & Info Badge -->
+        <div class="text-center space-y-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                عرض مباشر مجاني
+            </span>
+            <h1 id="videoTitle" class="text-2xl font-extrabold text-white leading-tight">فيديو العرض التوضيحي</h1>
+            <p id="videoDesc" class="text-xs text-slate-400 max-w-xs mx-auto">هذا مثال توضيحي لصفحة هبوط تعرض الفيديو فور مسح رمز الاستجابة السريعة (QR Code).</p>
+        </div>
+
+        <!-- Video Player Wrapper -->
+        <div class="relative group">
+            
+            <!-- Video Container -->
+            <div class="video-container bg-slate-900 border border-slate-800">
+                <video id="mainVideo" playsinline autoplay muted loop preload="auto">
+                    <!-- Default sample video -->
+                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+                    متصفحك لا يدعم تشغيل مقاطع الفيديو.
+                </video>
+            </div>
+
+            <!-- Custom Controls Overlay (Unmute Alert) -->
+            <button id="unmuteBtn" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-indigo-600/90 hover:bg-indigo-600 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 backdrop-blur-md shadow-lg transition-all animate-pulse-subtle border border-indigo-400/30">
+                <i class="fa-solid fa-volume-xmark text-sm" id="muteIcon"></i>
+                <span id="muteText">انقر لتشغيل الصوت</span>
+            </button>
+        </div>
+
+        <!-- Action Quick Buttons -->
+        <div class="grid grid-cols-2 gap-3">
+            <button id="playPauseBtn" class="glass-card py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition active:scale-95 border border-slate-800">
+                <i class="fa-solid fa-pause text-indigo-400" id="playIcon"></i>
+                <span class="text-xs font-semibold text-slate-200" id="playStatusText">إيقاف مؤقت</span>
+            </button>
+
+            <button id="fullscreenBtn" class="glass-card py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition active:scale-95 border border-slate-800">
+                <i class="fa-solid fa-expand text-indigo-400"></i>
+                <span class="text-xs font-semibold text-slate-200">ملء الشاشة</span>
+            </button>
+        </div>
+
+        <!-- URL Tester Tool (Collapsible for testing) -->
+        <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3 mt-2">
+            <div class="flex items-center justify-between cursor-pointer" id="toggleUrlForm">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-link text-indigo-400 text-sm"></i>
+                    <h3 class="text-xs font-bold text-slate-300">تجربة فيديو خاص بك (رابط MP4)</h3>
+                </div>
+                <i class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-300" id="chevronIcon"></i>
+            </div>
+
+            <div id="urlFormContainer" class="hidden space-y-3 pt-2 border-t border-slate-800">
+                <div class="space-y-1">
+                    <label class="text-[10px] text-slate-400">رابط الفيديو المباشر (.mp4):</label>
+                    <input type="url" id="customUrlInput" placeholder="https://example.com/video.mp4" 
+                           class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition dir-ltr">
+                </div>
+                <button id="loadVideoBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-xs font-bold transition shadow-md">
+                    تحميل الفيديو
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-4 text-center text-[11px] text-slate-500 border-t border-slate-900 glass-card">
+        مصممة للعمل مع جميع ماسحات الـ QR Code 📱
+    </footer>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-4 py-2 rounded-full shadow-2xl border border-slate-700 opacity-0 transition-opacity pointer-events-none duration-300 z-50">
+        تم نسخ الرابط!
+    </div>
+
+    <!-- JavaScript Interactions -->
+    <script>
+        const video = document.getElementById('mainVideo');
+        const unmuteBtn = document.getElementById('unmuteBtn');
+        const muteIcon = document.getElementById('muteIcon');
+        const muteText = document.getElementById('muteText');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const playIcon = document.getElementById('playIcon');
+        const playStatusText = document.getElementById('playStatusText');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const toast = document.getElementById('toast');
+
+        // Toggle Sound (Unmute)
+        unmuteBtn.addEventListener('click', () => {
+            if (video.muted) {
+                video.muted = false;
+                muteIcon.className = "fa-solid fa-volume-high text-sm";
+                muteText.textContent = "كتم الصوت";
+                unmuteBtn.classList.remove('bg-indigo-600/90', 'animate-pulse-subtle');
+                unmuteBtn.classList.add('bg-slate-900/80');
+            } else {
+                video.muted = true;
+                muteIcon.className = "fa-solid fa-volume-xmark text-sm";
+                muteText.textContent = "تشغيل الصوت";
+                unmuteBtn.classList.add('bg-indigo-600/90', 'animate-pulse-subtle');
+                unmuteBtn.classList.remove('bg-slate-900/80');
+            }
+        });
+
+        // Toggle Play/Pause
+        playPauseBtn.addEventListener('click', () => {
+            if (video.paused) {
+                video.play();
+                playIcon.className = "fa-solid fa-pause text-indigo-400";
+                playStatusText.textContent = "إيقاف مؤقت";
+            } else {
+                video.pause();
+                playIcon.className = "fa-solid fa-play text-indigo-400";
+                playStatusText.textContent = "تشغيل";
+            }
+        });
+
+        // Toggle Fullscreen
+        fullscreenBtn.addEventListener('click', () => {
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            } else if (video.webkitRequestFullscreen) { /* Safari */
+                video.webkitRequestFullscreen();
+            } else if (video.msRequestFullscreen) { /* IE11 */
+                video.msRequestFullscreen();
+            }
+        });
+
+        // Expand/Collapse URL Tester Form
+        const toggleUrlForm = document.getElementById('toggleUrlForm');
+        const urlFormContainer = document.getElementById('urlFormContainer');
+        const chevronIcon = document.getElementById('chevronIcon');
+
+        toggleUrlForm.addEventListener('click', () => {
+            urlFormContainer.classList.toggle('hidden');
+            chevronIcon.classList.toggle('rotate-180');
+        });
+
+        // Load Custom Video URL
+        const loadVideoBtn = document.getElementById('loadVideoBtn');
+        const customUrlInput = document.getElementById('customUrlInput');
+
+        loadVideoBtn.addEventListener('click', () => {
+            const url = customUrlInput.value.trim();
+            if (url) {
+                video.src = url;
+                video.load();
+                video.play();
+                video.muted = false;
+                muteIcon.className = "fa-solid fa-volume-high text-sm";
+                muteText.textContent = "كتم الصوت";
+                showToast("تم تحميل الفيديو بنجاح!");
+            } else {
+                showToast("يرجى إدخال رابط فيديو صحيح!");
+            }
+        });
+
+        // Share Link functionality
+        shareBtn.addEventListener('click', () => {
+            if (navigator.share) {
+                navigator.share({
+                    title: document.title,
+                    url: window.location.href
+                }).catch(() => {});
+            } else {
+                // Fallback copy to clipboard
+                const dummy = document.createElement('input');
+                document.body.appendChild(dummy);
+                dummy.value = window.location.href;
+                dummy.select();
+                document.execCommand('copy');
+                document.body.removeChild(dummy);
+                showToast("تم نسخ رابط الصفحة!");
+            }
+        });
+
+        // Helper Toast Notification
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
+
+        // Auto-play attempt on load
+        window.addEventListener('load', () => {
+            video.play().catch(error => {
+                console.log("Autoplay blocked by browser until user interaction.");
+            });
+        });
+    </script>
+</body>
+</html>
